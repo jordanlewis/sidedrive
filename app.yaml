@@ -5,6 +5,23 @@ api_version: 1
 threadsafe: true
 
 handlers:
+- url: /css
+  static_dir: css
+
+- url: /js
+  static_dir: js
+
+- url: /fonts
+  static_dir: fonts
+
+- url: /
+  static_files: index.html
+  upload: index.html
+
+- url: /edit
+  static_files: edit.html
+  upload: edit.html
+
 - url: /.*
   script: app.application
 

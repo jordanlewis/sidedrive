@@ -2081,6 +2081,20 @@ $.widget("ui.draggable", $.ui.mouse, {
 				pageY = this.originalPageY;
 
 			}
+		        // XXX This added by us. Hacky for now.
+		        if ( o.axis === "curve") {
+			    /* 
+			       Move the draggable along a parabola.
+			     */
+			    var HEIGHT = 50;
+			    var WIDTH = 340; // TODO This needs to be dynamically computed.
+
+			    var relX = pageX - this.originalPageX;
+			    var bit = Math.pow((2 * relX / WIDTH)  - 1, 2.0);
+			    var newY = this.originalPageY - (HEIGHT * (1 - bit));
+
+			    pageY = newY;
+			}
 		}
 
 		return {
