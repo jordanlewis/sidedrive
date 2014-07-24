@@ -5,7 +5,7 @@ from model import Account, Info
 from backends import NullBackend
 from twitter_backend import TwitterBackend
 
-DEFAULT_SERVICE = "NULL"
+DEFAULT_SERVICE = "Twitter"
 BACKENDS = {
     "NULL": NullBackend(),
     "Twitter": TwitterBackend(),

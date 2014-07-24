@@ -100,19 +100,19 @@ class TwitterBackend(Backend):
         return decompress(b64decode(read_tweet_tree(USERNAME, tweet_id)))[:-36]
 
     def store(self, data):
-        compressed = b64encode(compress(data))
-        _, tweet_id = tweet_text(b, USERNAME, compressed)
+        compressed = b64encode(compress(data + str(uuid.uuid4())))
+        _, tweet_id = tweet_text(self.b, USERNAME, compressed)
         return tweet_id
 
 if __name__=="__main__":
-    b = mechanize.Browser()
-    login(b, USERNAME, PASSWORD)
-    text = open(sys.argv[1]).read() + str(uuid.uuid4())
-    compressed = b64encode(compress(text))
+    #b = mechanize.Browser()
+    #login(b, USERNAME, PASSWORD)
+    #text = open(sys.argv[1]).read() + str(uuid.uuid4())
+    #compressed = b64encode(compress(text))
 
-    username, tweet_id = tweet_text(b, username, compressed)
-    print username, tweet_id
+    #username, tweet_id = tweet_text(b, username, compressed)
+    #print username, tweet_id
 
-    print "fetching result..."
+    #print "fetching result..."
 
-    print decompress(b64decode(read_tweet_tree(username, tweet_id)))[:-36]
+    print decompress(b64decode(read_tweet_tree("hodor", 492412041278136320)))
