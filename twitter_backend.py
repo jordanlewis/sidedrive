@@ -9,8 +9,10 @@ from base64 import b64encode, b64decode
 from zlib import compress, decompress
 import struct
 
-username = "hodor1988"
-password = "hodorhodor"
+from backends import Backend
+
+USERNAME = "hodor1988"
+PASSWORD = "hodorhodor"
 
 def login(b, username, password):
     b.open("http://twitter.com")
@@ -86,16 +88,31 @@ def read_tweet_tree(username, root_tweet_id):
     else:
         return root_text
 
+class TwitterBackend(Backend):
 
+    def __init__(self):
+        b = mechanize.Browser()
+        login(b, USERNAME, PASSWORD)
+        self.b = b
 
-b = mechanize.Browser()
-login(b, username, password)
-text = open(sys.argv[1]).read() + str(uuid.uuid4())
-compressed = b64encode(compress(text))
+    def get(self, ref_list):
+        tweet_id = ref_list[0]
+        return decompress(b64decode(read_tweet_tree(USERNAME, tweet_id)))[:-36]
 
-username, tweet_id = tweet_text(b, username, compressed)
-print username, tweet_id
+    def store(self, data):
+        compressed = b64encode(data)
+        _, tweet_id = tweet_text(b, USERNAME, compressed)
+        return tweet_id
 
-print "fetching result..."
+if __name__=="__main__":
+    b = mechanize.Browser()
+    login(b, USERNAME, PASSWORD)
+    text = open(sys.argv[1]).read() + str(uuid.uuid4())
+    compressed = b64encode(compress(text))
 
-print decompress(b64decode(read_tweet_tree(username, tweet_id)))[:-36]
+    username, tweet_id = tweet_text(b, username, compressed)
+    print username, tweet_id
+
+    print "fetching result..."
+
+    print decompress(b64decode(read_tweet_tree(username, tweet_id)))[:-36]
