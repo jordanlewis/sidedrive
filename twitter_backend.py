@@ -4,8 +4,9 @@ import mechanize
 import re
 import sys
 import uuid
-from base64 import b64encode
-from zlib import compress
+import urllib2
+from base64 import b64encode, b64decode
+from zlib import compress, decompress
 import struct
 
 username = "hodor1988"
@@ -29,29 +30,72 @@ def tweet_chunk(b, chunk):
 
 #text is represented as arbitrarily deep n-ary trees of tweets.
 #internal nodes consist of !-separated compressed tweet ids
-def tweet_text(b, username, text):
+def tweet_text(b, username, text, index=False):
+    chunks = []
+    if index:
+        # if we're an index we have can't split inside a ref
+        cur_chunk = ""
+        for ref in text.split("!"):
+            if len(cur_chunk) + 1 + len(ref) > 140:
+                chunks += cur_chunk
+                cur_chunk = ""
+            if cur_chunk:
+                cur_chunk += "!"
+            cur_chunk += ref
+        chunks.append(cur_chunk)
+    else:
+        for i in xrange(0, len(text), 140):
+            chunks.append(text[i:i+140])
+
     tweet_ids = []
-    for i in xrange(0, len(text), 140):
-        chunk = text[i:i+140]
+    for chunk in chunks:
         tweet_id = tweet_chunk(b, chunk)
         print "Tweeted %s to %s:" % (chunk, tweet_id)
         tweet_ids.append(tweet_id)
 
     if len(tweet_ids) == 1:
         print "Done! root tweet is %s" % tweet_ids[0]
-        return tweet_ids[0]
+        return username, tweet_ids[0]
 
     tweet_refs = []
     for tweet_id in tweet_ids:
         encoded = b64encode(struct.pack(">Q", int(tweet_id)))
-        tweet_ref = "!" + b64encode(compress(username + "|" + encoded))
+        tweet_ref = b64encode(compress(username + "|" + encoded))
         tweet_refs.append(tweet_ref)
-    print "Made %d tweet ids... tweeting %s now" % (len(tweet_ids), "".join(tweet_refs))
-    return tweet_text(b, username, "".join(tweet_refs))
+    print "Made %d tweet ids... tweeting %s now" % (len(tweet_ids), "!".join(tweet_refs))
+    return tweet_text(b, username, "!".join(tweet_refs), index=True)
+
+def read_tweet(username, tweet_id):
+    b = mechanize.Browser()
+    page = urllib2.urlopen("http://twitter.com/%s/status/%s" % (username, tweet_id)).read()
+    text = re.search("js-tweet-text tweet-text\">(.*)</p>", page).groups()[0]
+    print "found text for tweet %s:%s: %s" % (username, tweet_id, text)
+    return text
+
+def read_tweet_tree(username, root_tweet_id):
+    root_text = read_tweet(username, root_tweet_id)
+    if "!" in root_text:
+        refs = root_text.split("!")
+        ret = ""
+        for ref in refs:
+            print ref
+            username, encoded = decompress(b64decode(ref)).split("|")
+            tweet_id = str(struct.unpack(">Q", b64decode(encoded))[0])
+            ret += read_tweet_tree(username, tweet_id)
+        return ret
+    else:
+        return root_text
+
+
 
 b = mechanize.Browser()
 login(b, username, password)
 text = open(sys.argv[1]).read() + str(uuid.uuid4())
 compressed = b64encode(compress(text))
 
-print tweet_text(b, username, compressed)
+username, tweet_id = tweet_text(b, username, compressed)
+print username, tweet_id
+
+print "fetching result..."
+
+print decompress(b64decode(read_tweet_tree(username, tweet_id)))[:-36]
