@@ -1,4 +1,5 @@
 import webapp2
+import json
 
 from model import Account, Info
 from backends import NullBackend
@@ -49,6 +50,7 @@ class Store(webapp2.RequestHandler):
         title = vals.get('title')
         data = vals.get('info')
         if not (title and data):
+            self.response.write('incomplete or empty data sent')
             return
         backend = BACKENDS[self.account.service]
         info = Info(title=title, account=self.account,
@@ -57,7 +59,8 @@ class Store(webapp2.RequestHandler):
 
 class List(webapp2.RequestHandler):
     def get(self):
-        pass
+        self.response.content_type = 'application/json'
+        self.response.write(json.dumps({'titles': [i.title for i in Info.query()]}))
 
 application = webapp2.WSGIApplication([
     ('/', MainPage),
