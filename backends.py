@@ -1,8 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
-import twitter_backend as tw
-
 class Backend:
 
     __metaclass__ = ABCMeta
