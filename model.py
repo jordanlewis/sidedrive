@@ -4,10 +4,10 @@ class Account(ndb.Model):
     """An account used for storing side data"""
     username = ndb.StringProperty()
     password = ndb.StringProperty()
-    service = ndb.StringProperty()
+    backend = ndb.StringProperty()
 
 class Info(ndb.Model):
     """A single value"""
     title = ndb.StringProperty()
-    account = ndb.StructuredProperty(Account)
+    backend = ndb.StringProperty()
     refs = ndb.StringProperty(repeated=True)

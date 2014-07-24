@@ -123,15 +123,3 @@ def decode(image):
     _validate_image(image)
 
     return ''.join(decode_imdata(image.getdata()))
-
-
-class Steganographer:
-    'deprecated'
-    def __init__(self, image):
-        self.image = image
-        warnings.warn('Steganographer class is deprecated, and will be removed before 1.0',
-                      DeprecationWarning, stacklevel=2)
-    def encode(self, data):
-        return encode(self.image, data)
-    def decode(self):
-        return decode(self.image)

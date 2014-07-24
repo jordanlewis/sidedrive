@@ -3,12 +3,12 @@ import json
 
 from model import Account, Info
 from backends import NullBackend
+from twitter_backend import TwitterBackend
 
-DEFAULT_SERVICE = "NULL"
-DEFAULT_NAME = "sidedrive"
-DEFAULT_PW = "drivin"
+DEFAULT_SERVICE = "Twitter"
 BACKENDS = {
     "NULL": NullBackend(),
+    "Twitter": TwitterBackend(),
 }
 
 def _get_default_account():
@@ -32,17 +32,16 @@ class Store(webapp2.RequestHandler):
 
     def __init__(self, request, response):
         self.initialize(request, response)
-        self.account = _get_default_account()
 
     def get(self):
-        backend = BACKENDS[self.account.service]
+        backend = BACKENDS[DEFAULT_SERVICE]
         title = self.request.get('title')
         # no user-specific storage
         inf = Info.query(Info.title == title).get()
         if inf is None:
             self.response.write('data with title {} not found'.format(title))
             return
-        val = backend.get(self.account.username, self.account.password, inf.refs)
+        val = backend.get(inf.refs)
         self.response.write(val)
 
     def post(self):
@@ -52,9 +51,9 @@ class Store(webapp2.RequestHandler):
         if not (title and data):
             self.response.write('incomplete or empty data sent')
             return
-        backend = BACKENDS[self.account.service]
-        info = Info(title=title, account=self.account,
-                    refs=[backend.store(self.account.username, self.account.password, data)]).put()
+        backend = BACKENDS[DEFAULT_SERVICE]
+        info = Info(title=title, backend=DEFAULT_SERVICE,
+                    refs=[backend.store(data)]).put()
         self.response.write('stored')
 
 class List(webapp2.RequestHandler):
