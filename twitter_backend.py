@@ -100,7 +100,7 @@ class TwitterBackend(Backend):
         return decompress(b64decode(read_tweet_tree(USERNAME, tweet_id)))[:-36]
 
     def store(self, data):
-        compressed = b64encode(data)
+        compressed = b64encode(compress(data))
         _, tweet_id = tweet_text(b, USERNAME, compressed)
         return tweet_id
 
