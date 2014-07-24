@@ -1,6 +1,9 @@
+from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
-class Backend(object):
+class Backend:
+
+    __metaclass__ = ABCMeta
 
     @abstractmethod
     def get(self, name, pw, ref_list):
@@ -18,4 +21,4 @@ class NullBackend(Backend):
         return "".join(ref_list)
 
     def store(self, name, pw, data):
-        pass
+        return data
