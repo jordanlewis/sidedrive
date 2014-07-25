@@ -31,3 +31,17 @@ function store_local_file(id, key, value) {
 function get_local_file(id) {
     return _files[id];
 }
+
+function button_color_change () {
+    // for the save button. It should be red if the form is valid
+    // and blue otherwise. Valid means that the key and value input
+    // fields both have values in them.
+    var key_valid = $("#input-key").val().trim().length > 0;
+    var value_valid = $("#input-value").val().trim().length > 0;
+    var save = $("#save");
+    if (key_valid && value_valid) {
+	save.css('background-color', '#ef3e37');
+    } else {
+	save.css('background-color', '#ccc');
+    }
+}
