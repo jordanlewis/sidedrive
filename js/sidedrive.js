@@ -40,6 +40,7 @@ function cloud_drop(draggable, id) {
     draggable.hide("puff");
 
     // 2) Submit to the CLOUD (or alert as stub)
+    $.post("/drive", { "title" : f["key"], "info" : f["value"] })
     //alert("key: " + f['key'] + " val: " + f['value']);
 }
 
