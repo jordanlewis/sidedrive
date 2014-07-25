@@ -4,11 +4,13 @@ import json
 from model import Account, Info
 from backends import NullBackend
 from twitter_backend import TwitterBackend
+from imgur_backend import ImgurBackend
 
 DEFAULT_SERVICE = "Twitter"
 BACKENDS = {
     "NULL": NullBackend(),
     "Twitter": TwitterBackend(),
+    "Imgur": ImgurBackend(),
 }
 
 def _get_default_account():
