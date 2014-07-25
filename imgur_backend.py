@@ -12,6 +12,8 @@ import sys
 from PIL import Image
 from StringIO import StringIO
 
+from backends import Backend
+
 username = "pokeman2014"
 password = "pikachu0724"
 client_id = "a0af21a237b8ae7"
@@ -22,11 +24,9 @@ HEADERS = {"Authorization": "Client-ID " + client_id,
            "Accept": "application/json",
            "Content-Type": "application/json"}
 
-def upload_image(filename):
+def upload_image(image_data):
     url = "https://api.imgur.com/3/image"
-    encoded_image = b64encode(open(filename, 'rb').read())
-    #print open(filename).read()
-    #print encoded_image
+    encoded_image = b64encode(image_data)
     data = {"image": encoded_image,
             "album": album_deletehash,
             "type": "base64"}
@@ -39,17 +39,19 @@ def get_and_decode_image(img_link):
     img = Image.open(StringIO(resp.content))
     return decompress(stepic.decode(img))
 
-text = open(sys.argv[1]).read()
-print text
-encoded_image = stepic.encode(Image.open("hobbes.png"), compress(text))
-encoded_image.save("tmp.png")
+if __name__ == "__main__":
+    text = open(sys.argv[1]).read()
+    print text
+    encoded_image = stepic.encode(Image.open("hobbes.png"), compress(text))
+    output = StringIO()
+    encoded_image.save(output, format="png")
+    resp = upload_image(output.getvalue())
 
-resp = upload_image("tmp.png")
-resp_data = json.loads(resp.content)
-#print resp_data
+    resp_data = json.loads(resp.content)
+    #print resp_data
 
-result = get_and_decode_image(resp_data["data"]["link"])
-print result
+    result = get_and_decode_image(resp_data["data"]["link"])
+    print result
 
 def string_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -58,3 +60,22 @@ def string_generator(size=6, chars=string.ascii_uppercase + string.digits):
 #new_img.save("fancy.png")
 
 #print stepic.decode(Image.open("tmp.png"))
+
+class ImgurBackend(Backend):
+
+    def __init__(self):
+        b = mechanize.Browser()
+        login(b, USERNAME, PASSWORD)
+        self.b = b
+
+    def get(self, ref_list):
+        link = ref_list[0]
+        return get_and_decode_image(link)
+
+    def store(self, data):
+        encoded_image = stepic.encode(Image.open("hobbes.png"), compress(text))
+        output = StringIO()
+        encoded_image.save(output, format="png")
+        resp = upload_image(output.getvalue())
+        resp_data = json.loads(resp.content)
+        return resp_data["data"]["link"]
