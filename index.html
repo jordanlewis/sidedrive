@@ -85,6 +85,11 @@
           // Change the input save button to red if its ready to submit
           $("#input-key").keydown(button_color_change);
           $("#input-value").keydown(button_color_change);
+
+          // Cache lookups we need around
+          input_key = $("#input-key");
+          input_value = $("#input-value");
+          save = $("#save");
       });
     </script>
   </body>
