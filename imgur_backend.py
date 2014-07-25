@@ -4,11 +4,11 @@ from base64 import b64encode, b64decode
 from zlib import compress, decompress
 import json
 import random
-import requests
 import string
 import struct
 import stepic
 import sys
+import urllib, urllib2
 from PIL import Image
 from StringIO import StringIO
 
@@ -30,13 +30,13 @@ def upload_image(image_data):
     data = {"image": encoded_image,
             "album": album_deletehash,
             "type": "base64"}
-    resp = requests.post(url, headers=HEADERS, data=json.dumps(data))
+    resp = urllib2.urlopen(urllib2.Request(url, json.dumps(data), HEADERS)).read()
     return resp
 
 def get_and_decode_image(img_link):
-    resp = requests.get(img_link)
+    resp = urllib2.urlopen(img_link)
     #print resp.content
-    img = Image.open(StringIO(resp.content))
+    img = Image.open(StringIO(resp.read()))
     return decompress(stepic.decode(img))
 
 if __name__ == "__main__":
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     encoded_image.save(output, format="png")
     resp = upload_image(output.getvalue())
 
-    resp_data = json.loads(resp.content)
+    resp_data = json.loads(resp)
     #print resp_data
 
     result = get_and_decode_image(resp_data["data"]["link"])
@@ -63,19 +63,14 @@ def string_generator(size=6, chars=string.ascii_uppercase + string.digits):
 
 class ImgurBackend(Backend):
 
-    def __init__(self):
-        b = mechanize.Browser()
-        login(b, USERNAME, PASSWORD)
-        self.b = b
-
     def get(self, ref_list):
         link = ref_list[0]
         return get_and_decode_image(link)
 
     def store(self, data):
-        encoded_image = stepic.encode(Image.open("hobbes.png"), compress(text))
+        encoded_image = stepic.encode(Image.open("hobbes.png"), compress(data))
         output = StringIO()
         encoded_image.save(output, format="png")
         resp = upload_image(output.getvalue())
-        resp_data = json.loads(resp.content)
+        resp_data = json.loads(resp)
         return resp_data["data"]["link"]
