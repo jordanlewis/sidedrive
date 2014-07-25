@@ -21,9 +21,9 @@
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
+    <link href="css/sidedrive.css" rel="stylesheet">
     <style>
       #draggable { cursor: pointer; }
-      #droppable {}
     </style>
   </head>
 
@@ -36,42 +36,51 @@
         <div class="cover-container">
 
           <div class="masthead clearfix">
-            <div class="inner">
-              <h3 class="masthead-brand">sidedrive.me</h3>
-              <ul class="nav masthead-nav">
-                <li class="active"><a href="#">home</a></li>
-                <li><a href="#">features</a></li>
-                <li><a href="#">contact</a></li>
-              </ul>
+            <div class="row top">
+	      <div class="col-lg-6 left-column">
+		<img id="logo" src="img/sd-logo-192w.jpg" alt="sidedrive"/>
+	      </div>
+	      <div class="col-lg-6 right-column">
+		<ul class="nav masthead-nav">
+                  <li class="active"><a href="#">home</a></li>
+                  <li><a href="#">features</a></li>
+                  <li><a href="#">contact</a></li>
+		</ul>
+	      </div>
             </div>
           </div>
 
           <div class="inner cover">
-	    <!-- This is the file / cloud area -->
-	    <div class="row">
-	      <div class="col-lg-6" id="file-container">
-		<!--<div id="draggable"><span class="glyphicon glyphicon-file"></span></div>-->
-	      </div>
-	      <div class="col-lg-6">
-		<div id="droppable"><span class="glyphicon glyphicon-cloud"></span></div>
-	      </div>
+	  <div class="row">
+	    <!-- files column -->
+	    <div class="col-lg-6" id="file-container">
+		<!-- Leaving this here if we want to do more playing with layout.
+		     <div id="draggable" class="file-thing">
+		  shoe size
+		</div> -->
 	    </div>
-            <h1 class="cover-heading">your everyday data.</h1>
-            <p class="lead"> stored safely, securely and easily. save your data in sidedrive.me and you will be happy</p>
-	    <div class="input-group input-group-lg">
-	      <span class="input-group-addon">@</span>
-	      <input id="key" type="text" class="form-control" placeholder="key">
+	    <!-- cloud column -->
+	    <div class="col-lg-6">
+		<div id="cloud"></div>
 	    </div>
-	    <div class="input-group input-group-lg">
-	      <span class="input-group-addon">@</span>
-	      <input id="value" type="text" class="form-control" placeholder="value">
+	  </div>
+	  <div class="row bottom-form">
+	    <div class="col-lg-12">
+	      <input id="input-key" type="text" class="my-form-control" required placeholder="key">
+	      <input id="input-value" type="text" class="my-form-control" required placeholder="value">
+	      <!-- btn btn-lg btn-default -->
+	      <a href="#" onclick="submit_action()" id="save" class="foobtn">sublimate</a>
 	    </div>
-	    <a href="#" class="btn btn-lg btn-default" onclick="submit_action()">sublime</a>
-          </div>
+	  </div>
           <div class="mastfoot">
-            <div class="inner">
-              <p>a project by <a href="#">the comet collective</a>.</p>
-            </div>
+	    <div class="row">
+	      <div class="col-lg-6 left-column">
+		<p>&copy; 2014 <a href="#">KometKollective</a> | All rights reserved</p>
+	      </div>
+	      <div class="col-lg-6 right-column">
+		Privacy | Terms
+	      </div>
+	    </div>
           </div>
 
         </div>
@@ -85,15 +94,27 @@
     <script src="js/sidedrive.js"></script>
     <script>
       $(function() {
+          // Change the input save button to red if its ready to submit
+          $("#input-key").keydown(button_color_change);
+          $("#input-value").keydown(button_color_change);
+
+          // Cache lookups we need around
+          input_key = $("#input-key");
+          input_value = $("#input-value");
+          save = $("#save");
+
       // Set the file to be draggable
-          $( "#draggable" ).draggable({revert: "invalid", axis:"curve"});
+          $( "#draggable" ).draggable(
+      {revert: "invalid", 
+      start: file_draggable_start_cb,
+      stop: file_draggable_stop_cb});
       // And cloud to droppable
-       $( "#droppable" ).droppable({
+       $( "#cloud" ).droppable({
             drop: function( event, ui ) {
                      var id = ui.draggable.attr("fileId");
-                     var f = get_local_file(id);
-                     alert("key: " + f['key'] + " val: " + f['value']);}
-      });
+                     cloud_drop(ui.draggable, id);
+                   }});
+
       });
     </script>
   </body>

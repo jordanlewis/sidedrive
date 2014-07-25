@@ -6,21 +6,41 @@ function gimme_unique_id() {
 function submit_action() {
     // Action for the submit button
 
+    var key = $("#input-key").val();
+    var value = $("#input-value").val();
+
     // 1) Add a new file icon.
     var id = gimme_unique_id();
-    var newFile = $("<div id='draggable" + id + "'><span class='glyphicon glyphicon-file'></span></div>");
+    var newFile = $("<div id='draggable" + id + "' class='file-thing'>" + key + "</div>");
     newFile.attr("fileId", id);
     $("#file-container").append(newFile);
-    newFile.draggable({revert: "invalid", axis: "curve"});
+    newFile.draggable({revert: "invalid",
+		       axis: "curve",
+		       start: function (e, i) {file_draggable_start_cb(e,i);},
+		       stop: function(e,i) {file_draggable_stop_cb(e,i);}
+		      });
 
     // 2) Stage the file information
-    var key = $("#key").val();
-    var value = $("#value").val();
     store_local_file(id, key, value);
 
     // 3) Reset the form
-    $("#key").val("");
-    $("#value").val("");
+    $("#input-key").val("");
+    $("#input-value").val("");
+
+    // 4) And the button color.
+    save.css('background-color', '#ccc');
+}
+
+function cloud_drop(draggable, id) {
+    var f = get_local_file(id);
+    // 1) animate it to hide
+
+    // Make it so that it doesn't try and revert animate back
+    draggable.draggable("option", "revert", false);
+    draggable.hide("puff");
+
+    // 2) Submit to the CLOUD (or alert as stub)
+    //alert("key: " + f['key'] + " val: " + f['value']);
 }
 
 var _files = {};
@@ -47,4 +67,24 @@ function button_color_change () {
     } else {
 	save.css('background-color', '#ccc');
     }
+}
+
+function file_draggable_start_cb (event, ui) {
+    // Turn the cloud to hover
+    // It appears it wants relative from where the js is ran
+    $("#cloud").css('background-image', "url('img/cloud_hover.png')");
+
+    // We can't rely on css:hover selector cuz of the parabola drag (the mouse
+    // drags off of the element). So set the hover state here.
+    $(event.target).css('background', "#eb1c23 url('img/red-gripper.png') no-repeat");
+}
+
+function file_draggable_stop_cb (event, ui) {
+    // Turn the cloud back to static
+    // It appears it wants relative from where the js is ran
+    $("#cloud").css('background-image', "url('img/cloud_static.png')");
+
+    // We can't rely on css:hover selector cuz of the parabola drag (the mouse
+    // drags off of the element). So set the hover state here.
+    $(event.target).css('background', "#858585 url('img/gripper2.png') no-repeat");
 }

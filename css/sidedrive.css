@@ -110,11 +110,18 @@ input.my-form-control:valid {
     background-color: #00aeef;
 }
 
-.btn {
+.foobtn {
     font-family: 'globersemibold';
     font-size: 18px;
     background-color: #ccc;
+    color: #fff;
     border: none;
+    height: 35px;
+    width: 125px;
+    padding-top: 5px;
+    border-radius: 0;
+    margin-top: 0;
+    display: inline-block;
 }
 
 /* Footer */
@@ -122,4 +129,41 @@ input.my-form-control:valid {
     font-family: 'glober_regularregular';
     size: 14px;
     color: #999;
+}
+
+/** EDIT PAGE */
+
+#cloud {
+    width: 376px;
+    height: 376px;
+    background-image: url('../img/cloud_static.png');
+}
+
+#cloud:hover {
+    background-image: url('../img/cloud_hover.png');
+}
+
+.bottom-form {
+    /* TODO should do this with margins not relative positioning */
+    position: relative;
+    top: 50px;
+}
+
+.file-thing {
+    border-radius: 5px;
+    width: 200px;
+    height: 50px;
+    overflow: hidden; /* TODO mess with this. */
+    background: #858585 url('../img/gripper2.png') no-repeat;
+    font-family: 'globerbold';
+    font-size: 18px;
+    color: #fff;
+    vertical-align: middle;
+    display: table-cell;
+    z-index: 9999;
+    cursor: pointer;
+}
+
+.file-thing:hover {
+    background: #eb1c23 url('../img/red-gripper.png') no-repeat;
 }
