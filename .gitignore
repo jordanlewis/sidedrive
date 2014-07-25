@@ -53,3 +53,9 @@ coverage.xml
 docs/_build/
 
 tmp.png
+
+# Vim files
+*.swp
+
+# Temporary iPython Files
+*-checkpoint.ipynb
