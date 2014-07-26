@@ -27,6 +27,11 @@ class PMFArray :
 			self.cumsum = np.cumsum(self.counts)
 			self._dirty = False
 
+	def frame (self) :
+		from pandas import DataFrame as DF
+		return DF( data={'freq' : self.counts, 'p' : self.counts/self.total}, \
+				   columns = ('freq','p'), index = self.outcomes)
+
 	def count (self, outcome, n = 1) :
 		# increment frequency for given outcome by n
 		idx = self.idx.get(outcome)
@@ -40,6 +45,16 @@ class PMFArray :
 		self.counts[idx] += n
 		self.total += n
 		self._dirty = True
+
+	def cmf (self, outcome) :
+		#probability of an outcome p or lower
+		idx = self.idx.get(outcome)
+		if idx is None :
+			raise Exception("Unknown outcome: %s"%outcome)
+
+		self._clean()
+		return self.cumsum[idx] / self.total
+		
 
 	def inv_cmf (self, p) :
 		if p < 0 or p > 1 :
@@ -56,13 +71,19 @@ class PMFArray :
 			raise Exception("Unknown outcome: %s"%outcome)
 		return self.counts[idx] / self.total
 
+	def get_freq (self, outcome) :
+		idx = self.idx.get(outcome)
+		if idx is None :
+			raise Exception("Unknown outcome: %s"%outcome)
+		return self.counts[idx]
+
 	def range_condition (self, p0, p1) :
 		if p0 < 0 or p0 > 1 :
 			raise Exception("p0 outside [0,1]: %f" % p0)
 		if p1 < 0 or p1 > 1 :
 			raise Exception("p1 outside [0,1]: %f" % p1)
 		if p1 <= p0 :
-			raise Exception("p0 >= p1: %s" % (p0, p1))
+			raise Exception("p0 >= p1: %f,%f" % (p0, p1))
 		self._clean()
 
 		# cuts in frequency space
@@ -72,6 +93,9 @@ class PMFArray :
 		# iterate through touched values and add to new PMF
 		cpmf = PMFArray()
 		i0, i1 = np.searchsorted(self.cumsum, (v0,v1))
+		# exclusive of left boundary
+		if v0 == self.cumsum[i0] :
+			i0 += 1
 		for i in xrange(i0, i1+1) :
 			vi = min(self.cumsum[i], v1)
 			cpmf.count(self.outcomes[i], vi - v0)
@@ -99,4 +123,5 @@ class PMFTree :
 	frequency count, allowing fast online adjustments and inverse CDF lookups 
 	(and thus sampling).
 	"""
+	#TODO
 	pass
