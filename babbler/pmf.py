@@ -85,6 +85,13 @@ class PMFArray :
 		p = random()
 		return self.inv_cmf(p)
 
+	def entropy (self) :
+		h = 0
+		for count in self.counts :
+			p = count / self.total
+			h -= p * np.log2(p)
+		return h
+
 
 class PMFTree :
 	"""
