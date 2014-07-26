@@ -2,17 +2,17 @@
 from collections import namedtuple
 from pmf import PMFArray as PMF
 
+# Trie node
+Node = namedtuple('Node', ('symbol', 'cmf', 'children'))
+
 class MGramModel :
 	"""
 	Markov-Chain model of a corpus based on n-gram frequencies.
 	"""
 
-	# Trie node
-	Node = namedtuple('Node', ('symbol', 'cmf', 'children'))
-
 	def __init__ (self, n) :
 		self.n = n
-		self.root = MGramModel.Node(None, PMF(), {})
+		self.root = Node(None, PMF(), {})
 
 	def train (self, ngram, w = 1) :
 		# incorporate ngram into frequency tables
@@ -23,7 +23,7 @@ class MGramModel :
 		for symbol in ngram :
 			node.cmf.count(symbol, w)
 			if not node.children.has_key(symbol) :
-				node.children[symbol] = MGramModel.Node(symbol, PMF(), {})
+				node.children[symbol] = Node(symbol, PMF(), {})
 			node = node.children[symbol]
 
 	def get_cmf (self, context=[]) :
@@ -40,7 +40,7 @@ class MGramModel :
 
 		return node.cmf
 
-	def emit (self, n, context=[], entropy=True) :
+	def emit (self, n, context=[], entropy=False) :
 		if len(self.root.children) == 0 :
 			return None
 
