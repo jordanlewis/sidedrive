@@ -77,6 +77,14 @@ class PMFArray :
 			raise Exception("Unknown outcome: %s"%outcome)
 		return self.counts[idx]
 
+	def set_condition (self, s) :
+		# iterate through touched values and add to new PMF
+		cpmf = PMFArray()
+		for o in s :
+			cpmf.count(o, self.get_freq(o))
+
+		return cpmf
+
 	def range_condition (self, p0, p1) :
 		if p0 < 0 or p0 > 1 :
 			raise Exception("p0 outside [0,1]: %f" % p0)

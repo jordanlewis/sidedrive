@@ -10,9 +10,12 @@
 # alphabet, with the goal that our transmission appear to come from an expected
 # distribution soas not to suggest a hidden channel.  A typical use case would 
 # be to embed arbitrary binary data in spam text.
+#
+# TODO: DRY for branching logic
+# TODO: eliminate recursion with stacks
 
 import numpy as np
-import BitVector
+from BitVector import BitVector
 from pmf import PMFArray as PMF
 
 def emit (pmf, bv) :
@@ -29,21 +32,28 @@ def emit (pmf, bv) :
 
 		
 class CCNode :
-	def __init__ (self, symbol=None, sp = 0.0, one = None, zero = None) :
+	def __init__ (self, symbol=None, zero = None, one = None, \
+									 zsp = 0.0, osp = 0.0, bv = None) :
 		self.symbol = symbol
-		self.sp = sp
-		self.one = one
 		self.zero = zero
+		self.one = one
+		self.zsp = zsp
+		self.osp = osp
 
 	def _node (self, g) :
 		# simple recursive call to populate graph with binary tree
 		from pydot import Node, Edge
-		n = Node(repr(self.symbol), label = "%r\nsp = %0.3f"%(self.symbol, self.sp))
+		label = '%r'%self.symbol
+		if self.symbol != None :
+			label += '\n%s'%self.bv
+		n = Node(repr(self), label = label)
 		g.add_node(n)
 		if not self.zero is None :
-			g.add_edge(Edge(n, self.zero._node(g), label = '0'))
+			g.add_edge(Edge(n, self.zero._node(g), 
+					label = '0\n%.3f'%(self.zsp)))
 		if not self.one is None :
-			g.add_edge(Edge(n, self.one._node(g), label = '1'))
+			g.add_edge(Edge(n, self.one._node(g), 
+					label = '1\n%.3f'%(self.osp)))
 		return n
 
 class CheerioCodec :
@@ -53,47 +63,87 @@ class CheerioCodec :
 	def __init__ (self, pmf) :
 		# populate codec tree
 		self.root = CCNode()
+		self.lookup = {}
 
-		# if there is a perfect split, root need not consume symbol
-		if pmf.cmf(pmf.inv_cmf(0.5)) == 0.5 :
-			self.root.zero = CCNode()
-			self.root.one = CCNode()
-			self._split(pmf.range_condition(0.0, 0.5), self.root.zero)
-			self._split(pmf.range_condition(0.5, 1.0), self.root.one)
+		self._build_tree(pmf, self.root)
+		self._build_table(self.root)
+
+	def _build_table (self, node, code = None) :
+		if code is None :
+			code = BitVector(bitstring='')
+		node.bv = code
+		if not node.symbol is None :
+			self.lookup[node.symbol] = code
+		if not node.zero is None :
+			self._build_table(node.zero, code + BitVector(bitstring='0'))
+		if not node.one is None :
+			self._build_table(node.one, code + BitVector(bitstring='1'))
+
+	def _build_tree (self, pmf, node) :
+		# pick partitions to move largest entries highest in tree
+		# sort symbols by descending probability
+		l = [ (pmf.get_p(symbol), symbol) for symbol in pmf.outcomes ]
+		l.sort(reverse = True)
+
+		# greedily assign each to smallest partition
+		zs = []
+		zp = 0.0
+		os = []
+		op = 0.0
+		for (p, s) in l :
+			if zp <= op :
+				zs.append((p, s))
+				zp += p
+			else :
+				os.append((p, s))
+				op += p
+
+		if zp == 0.5 :
+			# perfect split! don't waste symbol on node
+			node.symbol = None
+			node.zsp = node.osp = 0.0
+		elif zp == 1.0 :
+			# terminal node! skip the rest
+			node.symbol = zs[0][1]
+			node.zero = node.one = None
+			node.zsp = node.osp = 1.0
+			return
 		else :
-			self._split(pmf, self.root)
+			# always put more weight on zero partition to simplify code
+			if zp < op :
+				zp, op = op, zp
+				zs, os = os, zs
 
-		self.decode = {}
-
-	def _split (self, pmf, node) :
-		s = pmf.inv_cmf(0.5)
-		p = pmf.get_p(s)
-		node.symbol = s
-		node.sp = p
-
-		# establish bounds
-		p1 = pmf.cmf(s)
-		p0 = p1 - p
+			# remove overweight and assign to node
+			p, s = zs.pop()
+			zp -= p	
+			node.symbol = s
+			node.zsp = 1 - 2 * zp
+			node.osp = 1 - 2 * op
 
 		# recur left if more symbols
-		if pmf.outcomes[0] != s :
+		if len(zs) :
+			zs = [ s for p, s in zs ]
 			node.zero = CCNode()
-			self._split(pmf.range_condition(0.0, p0), node.zero)
+			self._build_tree(pmf.set_condition(zs), node.zero)
 		else :
-			# if no chance to recur, lower stop probability
-			node.sp *= 0.5
+			node.zero = None
+			node.zsp = 1.0
+			node.osp = 2 * p - 1
 
 		# recur right if more symbols
-		if pmf.outcomes[-1] != s :
+		if len(os) :
+			os = [ s for p, s in os ]
 			node.one = CCNode()
-			self._split(pmf.range_condition(p1, 1.0), node.one)
+			self._build_tree(pmf.set_condition(os), node.one)
 		else :
-			# if no chance to recur, lower stop probability
-			node.sp *= 0.5
+			node.one = None
+			node.osp = 1.0
+			node.zsp = 2 * p - 1
 
 	def is_degenerate (self) :
 		# can codec represent any bit sequence?
-		return self.root.zero is None or self.root.one is None
+		return (self.root.zero is None) or (self.root.one is None)
 
 	def emit (self, binary) :
 		# return a symbol to emit and the number of bits consumed
@@ -101,10 +151,14 @@ class CheerioCodec :
 
 	def encode (self, binary) :
 		# collect emitted symbols in list until binary consumed and return
+		# NOTE: Cheerio symbols may encode extra bits.  External protocol
+		# must encode message tokenization (e.g. length header or stop code)
 		pass
 
 	def decode (self, symbols) :
 		# construct a bitstream from the symbol or list of symbols
+		# NOTE: Cheerio symbols may encode extra bits.  External protocol
+		# must encode message tokenization (e.g. length header or stop code)
 		pass
 
 	def graph (self) :
@@ -114,19 +168,11 @@ class CheerioCodec :
 		self.root._node(g)
 		return g
 
-	def information (self, node = None, depth = 0, in_p = 1.0) :
-		if node == None :
-			node = self.root
-
-		h = depth * in_p * node.sp
-		if node.zero is None :
-			h += depth * (in_p / 2.0 - in_p * node.sp)
-		else :
-			h += self.information(node.zero, depth+1, in_p / 2 - in_p * node.sp)
-		if node.one is None :
-			h += depth * (in_p / 2.0 - in_p * node.sp)
-		else :
-			h += self.information(node.one, depth+1, in_p / 2 - in_p * node.sp)
+	def information (self) : 
+		pmf = self.pmf()
+		h = 0
+		for symbol in pmf.outcomes :
+			h += pmf.get_p(symbol) * len(self.lookup[symbol])
 
 		return h
 		
@@ -136,16 +182,11 @@ class CheerioCodec :
 			pmf = PMF()
 
 		if not node.symbol is None :
-			pmf.count(node.symbol, in_p * node.sp)
-
-		if node.zero is None :
-			pmf.count(node.symbol, in_p * (1.0 - node.sp) * 0.5)
-		else :
-			self.pmf(node.zero, pmf, in_p * (1.0 - node.sp) * 0.5)
-		if node.one is None :
-			pmf.count(node.symbol, in_p * (1.0 - node.sp) * 0.5)
-		else :
-			self.pmf(node.one, pmf, in_p * (1.0 - node.sp) * 0.5)
+			pmf.count(node.symbol, in_p * 0.5 * (node.zsp + node.osp))
+		if not node.zero is None :
+			self.pmf(node.zero, pmf, in_p * (1.0 - node.zsp) * 0.5)
+		if not node.one is None :
+			self.pmf(node.one, pmf, in_p * (1.0 - node.osp) * 0.5)
 
 		return pmf
 
