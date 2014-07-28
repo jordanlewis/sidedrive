@@ -17,20 +17,8 @@
 import numpy as np
 from BitVector import BitVector
 from pmf import PMFArray as PMF
+from random import randint, random
 
-def emit (pmf, bv) :
-	# return a symbol and the number of bits consumed
-	symbol = None
-	bits = 0
-	while True :
-		bit = bv[0]
-		if bit == 0 :
-			pmf2 = pmf.range_condition(0,0.5)
-		else :
-			pmf2 = pmf.range_condition(0.5, 1.0)
-		symbol = pmf2.sample()
-
-		
 class CCNode :
 	def __init__ (self, symbol=None, zero = None, one = None, \
 									 zsp = 0.0, osp = 0.0, bv = None) :
@@ -145,21 +133,44 @@ class CheerioCodec :
 		# can codec represent any bit sequence?
 		return (self.root.zero is None) or (self.root.one is None)
 
-	def emit (self, binary) :
-		# return a symbol to emit and the number of bits consumed
-		pass
-
 	def encode (self, binary) :
 		# collect emitted symbols in list until binary consumed and return
 		# NOTE: Cheerio symbols may encode extra bits.  External protocol
 		# must encode message tokenization (e.g. length header or stop code)
-		pass
+		symbols = []
+		while len(binary) > 0 :
+			node = self.root
+			while node != None:
+				# determine next branch
+				if len(binary) > 0 :
+					bit = binary[0]
+				else :
+					bit = randint(0,1)
+				if bit == 0 :
+					p = node.zsp
+					n = node.zero
+				else :
+					p = node.osp
+					n = node.one
+
+				# attempt to continue or emit on failure
+				if random() < p :
+					symbols.append(node.symbol)
+					break
+				else :
+					node = n
+					if len(binary) == 1 :
+						binary = BitVector(bitstring='')
+					else :
+						binary = binary[1:]
+		return symbols
 
 	def decode (self, symbols) :
-		# construct a bitstream from the symbol or list of symbols
-		# NOTE: Cheerio symbols may encode extra bits.  External protocol
-		# must encode message tokenization (e.g. length header or stop code)
-		pass
+		# construct a bitstream from the list of symbols
+		bv = BitVector(bitstring = '')
+		for symbol in symbols :
+			bv += self.lookup[symbol]
+		return bv
 
 	def graph (self) :
 		# generate a pydot graph of codec
