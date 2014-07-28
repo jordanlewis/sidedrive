@@ -133,13 +133,16 @@ class CheerioCodec :
 		# can codec represent any bit sequence?
 		return (self.root.zero is None) or (self.root.one is None)
 
-	def encode (self, binary) :
+	def encode (self, binary, max_symbols = None) :
 		# collect emitted symbols in list until binary consumed and return
 		# NOTE: Cheerio symbols may encode extra bits.  External protocol
 		# must encode message tokenization (e.g. length header or stop code)
 		symbols = []
-		while len(binary) > 0 :
+		bits = 0
+		while len(binary) > 0 and \
+				(max_symbols is None or len(symbols) < max_symbols) :
 			node = self.root
+			bits = 0
 			while node != None:
 				# determine next branch
 				if len(binary) > 0 :
@@ -156,6 +159,7 @@ class CheerioCodec :
 				# attempt to continue or emit on failure
 				if random() < p :
 					symbols.append(node.symbol)
+					bits += len(self.lookup[node.symbol])
 					break
 				else :
 					node = n
@@ -163,13 +167,15 @@ class CheerioCodec :
 						binary = BitVector(bitstring='')
 					else :
 						binary = binary[1:]
-		return symbols
+		return symbols, bits
 
 	def decode (self, symbols) :
 		# construct a bitstream from the list of symbols
 		bv = BitVector(bitstring = '')
 		for symbol in symbols :
-			bv += self.lookup[symbol]
+			bs = self.lookup[symbol]
+			if len(bs) > 0 :
+				bv += self.lookup[symbol]
 		return bv
 
 	def graph (self) :
